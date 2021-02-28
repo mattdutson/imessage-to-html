@@ -31,6 +31,7 @@ def select_chat_id(db, handle_ids):
         'SELECT DISTINCT chat_id FROM chat_handle_join'
         'WHERE handle_id IN ({})'.format(wildcards), handle_ids)
     chat_ids = unpack_column(db.fetchall())
+
     if len(chat_ids) > 1:
         print('Multiple chats found containing the specified user ID:')
         pad_width = len(str(len(chat_ids) + 1))
@@ -49,10 +50,10 @@ def select_chat_id(db, handle_ids):
             selection = int(selection)
         except ValueError:
             exit('Error: "{}" is not a valid integer.'.format(selection))
-
         if selection < 0 or selection >= len(chat_ids):
             exit('Error: "{}" is not an available option.'.format(selection))
         return selection
+
     else:
         return chat_ids[0]
 
