@@ -66,9 +66,9 @@ def get_chat_id(db, handle_ids):
             selection = int(selection)
         except ValueError:
             exit('Error: "{}" is not a valid integer.'.format(selection))
-        if selection < 0 or selection >= len(chat_ids):
+        if selection < 1 or selection > len(chat_ids):
             exit('Error: "{}" is not an available option.'.format(selection))
-        return selection
+        return chat_ids[selection - 1]
 
     else:
         return chat_ids[0]
