@@ -109,14 +109,11 @@ def get_int(message, none_ok=False):
 
 
 def get_year():
-    return get_int(
-        'Enter a year (or press enter for all years): ', none_ok=True)
+    return get_int('Enter a year (or press enter for all years): ', none_ok=True)
 
 
 def get_month():
-    month = get_int(
-        'Enter a month as an integer (or press enter for all months): ',
-        none_ok=True)
+    month = get_int('Enter a month as an integer (or press enter for all months): ', none_ok=True)
     if month and (month < 1 or month > 12):
         exit('Error: "{}" is not a valid month.'.format(month))
     return month
@@ -181,11 +178,10 @@ def write_messages(messages, my_name, other_names):
             if attachment is not None:
                 ext = path.splitext(attachment)[-1]
                 if ext != '.pluginPayloadAttachment':
-                    dst_path = path.join(
-                        ATTACHMENTS_DIR, str(attachment_id) + ext)
+                    dst_path = path.join(ATTACHMENTS_DIR, str(attachment_id) + ext)
                     copyfile(expanduser(attachment), dst_path)
-                    file.write('<a href="{}">Attachment</a><br>\n'.format(
-                        html.escape(dst_path, quote=True)))
+                    escaped = html.escape(dst_path, quote=True)
+                    file.write('<a href="{}">Attachment</a><br>\n'.format(escaped))
                     attachment_id += 1
             if text and (ord(text[0]) != 65532 or attachment is None):
                 file.write('{}<br>\n'.format(html.escape(text)))
@@ -217,13 +213,11 @@ def main():
 
 def prevent_overwrite():
     if path.exists(OUTPUT_FILENAME):
-        exit(
-            'Error: Output file "{}" already exists. Delete or move it '
-            'to proceed.'.format(OUTPUT_FILENAME))
+        exit('Error: Output file "{}" already exists. Delete or move it '
+             'to proceed.'.format(OUTPUT_FILENAME))
     if path.exists(ATTACHMENTS_DIR):
-        exit(
-            'Error: Attachment folder "{}" already exists. Delete or '
-            'move it to proceed.'.format(ATTACHMENTS_DIR))
+        exit('Error: Attachment folder "{}" already exists. Delete or '
+             'move it to proceed.'.format(ATTACHMENTS_DIR))
 
 
 if __name__ == '__main__':
