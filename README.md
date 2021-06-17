@@ -1,5 +1,5 @@
-# imessage-to-html
+## Code Style
 
-A script for converting macOS iMessage history into a searchable HTML file
+Unless otherwise specified, follow the [PEP8](https://www.python.org/dev/peps/pep-0008) conventions.
 
-Written for my lovely wife Itzel.
+Use a line limit of 99 characters.
