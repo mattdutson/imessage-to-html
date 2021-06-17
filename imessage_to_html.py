@@ -28,9 +28,9 @@ def wildcards(items):
 def get_handle_ids(db):
     user_ids_raw = input(
         'Enter a comma-separated list of user IDs to search for. In '
-        'general, the user ID is either the phone number with country '
-        'code and no spaces (e.g., "+15554443333") or an email address '
-        '(e.g., "person@icloud.com").\nUser IDs: ')
+        'general, the user ID is either a phone number with country '
+        'code and no spaces (e.g., "+15554443333") or an email address.'
+        '\nUser IDs: ')
     user_ids = list(map(str.strip, user_ids_raw.split(',')))
     db.execute('''
         SELECT ROWID
