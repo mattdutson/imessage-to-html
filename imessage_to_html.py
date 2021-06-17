@@ -4,13 +4,12 @@ import html
 import os
 import os.path as path
 import sqlite3
+import shutil
 from datetime import datetime, timedelta, timezone
-from os.path import expanduser
-from shutil import copyfile
 
 OUTPUT_FILENAME = path.join('.', 'output.html')
 ATTACHMENTS_DIR = path.join('.', 'attachments')
-DB_PATH = path.join(expanduser('~'), 'Library', 'Messages', 'chat.db')
+DB_PATH = path.join(path.expanduser('~'), 'Library', 'Messages', 'chat.db')
 HTML_HEAD = '<html>\n<head>\n<meta charset="utf-8"/>\n</head>\n<body>\n'
 HTML_TAIL = '</body>\n</html>'
 
@@ -179,7 +178,7 @@ def write_messages(messages, my_name, other_names):
                 ext = path.splitext(attachment)[-1]
                 if ext != '.pluginPayloadAttachment':
                     dst_path = path.join(ATTACHMENTS_DIR, str(attachment_id) + ext)
-                    copyfile(expanduser(attachment), dst_path)
+                    shutil.copyfile(path.expanduser(attachment), dst_path)
                     escaped = html.escape(dst_path, quote=True)
                     file.write('<a href="{}">Attachment</a><br>\n'.format(escaped))
                     attachment_id += 1
