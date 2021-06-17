@@ -159,10 +159,13 @@ def write_messages(messages):
                 ext = path.splitext(attachment)[-1]
                 if ext != '.pluginPayloadAttachment':
                     dst_path = path.join(ATTACHMENTS_DIR, str(attachment_id) + ext)
-                    shutil.copyfile(path.expanduser(attachment), dst_path)
-                    escaped = html.escape(dst_path, quote=True)
-                    file.write('<a href="{}">Attachment</a><br>\n'.format(escaped))
-                    attachment_id += 1
+                    try:
+                        shutil.copyfile(path.expanduser(attachment), dst_path)
+                        escaped = html.escape(dst_path, quote=True)
+                        file.write('<a href="{}">Attachment</a><br>\n'.format(escaped))
+                        attachment_id += 1
+                    except FileNotFoundError:
+                        file.write('ATTACHMENT NOT FOUND.<br>')
             if text and (ord(text[0]) != 65532 or attachment is None):
                 file.write('{}<br>\n'.format(html.escape(text)))
             if is_from_me or user_id is None:
