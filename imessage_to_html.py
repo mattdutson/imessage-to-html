@@ -14,15 +14,15 @@ HTML_HEAD = '<html>\n<head>\n<meta charset="utf-8"/>\n</head>\n<body>\n'
 HTML_TAIL = '</body>\n</html>'
 
 
+def wildcards(items):
+    return ','.join(['?'] * len(items))
+
+
 def unpack_column(results):
     unpacked = []
     for item in results:
         unpacked.append(item[0])
     return unpacked
-
-
-def wildcards(items):
-    return ','.join(['?'] * len(items))
 
 
 def get_handle_ids(db):
