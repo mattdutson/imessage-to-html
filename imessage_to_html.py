@@ -78,13 +78,15 @@ def retrieve_messages(db, chat_id):
     db.execute('''
         SELECT 
             message.text,
-            message.handle_id,
             message.date,
             message.is_from_me,
+            handle.id,
             attachment.filename
         FROM message
         INNER JOIN chat_message_join
         ON message.ROWID = chat_message_join.message_id
+        LEFT JOIN handle
+        ON message.handle_id = handle.ROWID
         LEFT JOIN message_attachment_join
         ON message.ROWID = message_attachment_join.message_id
         LEFT JOIN attachment
@@ -92,9 +94,7 @@ def retrieve_messages(db, chat_id):
         WHERE chat_id = ?
         ORDER BY message.date
         ''', (chat_id,))
-    messages = db.fetchall()
-
-    return messages
+    return db.fetchall()
 
 
 def get_int(message, none_ok=False):
@@ -122,31 +122,10 @@ def get_utc_offset():
     return get_int('Enter a UTC offset in hours: ')
 
 
-def get_my_name():
-    return input('Enter your name: ')
-
-
-def get_other_names(db, chat_id):
-    db.execute('''
-        SELECT handle.ROWID, handle.id
-        FROM handle
-        INNER JOIN chat_handle_join
-        ON handle.ROWID = chat_handle_join.handle_id
-        WHERE chat_handle_join.chat_id = ?
-        ''', (chat_id,))
-    results = db.fetchall()
-    names = {}
-    for row in results:
-        handle_id, user_id = row
-        name = input('Enter a name for user "{}": '.format(user_id))
-        names[handle_id] = name
-    return names
-
-
 def prepare_messages(messages, year, month, utc_offset):
     prepared = []
     for message in messages:
-        text, handle, nanoseconds, is_from_me, attachment_filename = message
+        text, nanoseconds, is_from_me, user_id, attachment_filename = message
         stamp = (datetime(2001, 1, 1, tzinfo=timezone.utc)
                  + timedelta(hours=utc_offset)
                  + timedelta(seconds=nanoseconds / 1000000000))
@@ -154,20 +133,22 @@ def prepare_messages(messages, year, month, utc_offset):
             continue
         if month is not None and stamp.month != month:
             continue
-        prepared.append((text, handle, stamp, is_from_me, attachment_filename))
+        prepared.append((text, stamp, is_from_me, user_id, attachment_filename))
     return prepared
 
 
-def write_messages(messages, my_name, other_names):
-    print('Processing...')
+def write_messages(messages):
     os.makedirs(ATTACHMENTS_DIR)
+
+    my_name = input('Enter your name: ')
+    other_names = {}
 
     with open(OUTPUT_FILENAME, 'w') as file:
         file.write(HTML_HEAD)
         last_day = None
         attachment_id = 0
         for message in messages:
-            text, handle, stamp, is_from_me, attachment = message
+            text, stamp, is_from_me, user_id, attachment = message
             if stamp.day != last_day:
                 date_str = stamp.strftime('%A, %B %d, %Y')
                 file.write('<h2>{}</h2>\n'.format(date_str))
@@ -184,10 +165,13 @@ def write_messages(messages, my_name, other_names):
                     attachment_id += 1
             if text and (ord(text[0]) != 65532 or attachment is None):
                 file.write('{}<br>\n'.format(html.escape(text)))
-            if is_from_me or handle == 0:
+            if is_from_me or user_id is None:
                 name = my_name
+            elif user_id in other_names.keys():
+                name = other_names[user_id]
             else:
-                name = other_names[handle]
+                name = input('Enter a name for user "{}": '.format(user_id))
+                other_names[user_id] = name
             file.write('<small>{}</small><br>\n'.format(html.escape(name)))
             stamp_str = stamp.strftime('%I:%M:%S %p')
             file.write('<small>{}</small><br>\n</p>'.format(stamp_str))
@@ -204,10 +188,8 @@ def main():
     year = get_year()
     month = None if year is None else get_month()
     utc_offset = get_utc_offset()
-    my_name = get_my_name()
-    other_names = get_other_names(db, chat_id)
     messages = prepare_messages(messages, year, month, utc_offset)
-    write_messages(messages, my_name, other_names)
+    write_messages(messages)
 
 
 def prevent_overwrite():
