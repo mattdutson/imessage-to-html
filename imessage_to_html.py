@@ -21,35 +21,40 @@ def unpack_column(results):
     return unpacked
 
 
+def wildcards(items):
+    return ','.join(['?'] * len(items))
+
+
 def get_handle_ids(db):
-    user_id = input(
-        'Enter a user ID to search for. In general, the user ID is the '
-        'phone number with country code and no spaces (e.g., '
-        '"+15554443333").\nUser ID: ')
+    user_ids_raw = input(
+        'Enter a comma-separated list of user IDs to search for. In '
+        'general, the user ID is either the phone number with country '
+        'code and no spaces (e.g., "+15554443333") or an email address '
+        '(e.g., "person@icloud.com").\nUser IDs: ')
+    user_ids = list(map(str.strip, user_ids_raw.split(',')))
     db.execute('''
         SELECT ROWID
         FROM handle
-        WHERE id = ?
-        ''', (user_id,))
+        WHERE id IN ({})
+        '''.format(wildcards(user_ids)), user_ids)
     handle_ids = unpack_column(db.fetchall())
     if not handle_ids:
-        exit('Error: Unable to locate a user with ID "{}".'.format(user_id))
+        exit('Error: Unable to locate any of the specified users.')
     return handle_ids
 
 
-def get_chat_id(db, handle_ids):
-    wildcards = ','.join(['?'] * len(handle_ids))
+def get_chat_ids(db, handle_ids):
     db.execute('''
         SELECT DISTINCT chat_id
         FROM chat_handle_join
         WHERE handle_id IN ({})
-        '''.format(wildcards), handle_ids)
-    chat_ids = unpack_column(db.fetchall())
+        '''.format(wildcards(handle_ids)), handle_ids)
+    all_chat_ids = unpack_column(db.fetchall())
 
-    if len(chat_ids) > 1:
-        print('Multiple chats found containing the specified user ID:')
-        pad_width = len(str(len(chat_ids) + 1))
-        for i, chat_id in enumerate(chat_ids):
+    if len(all_chat_ids) > 1:
+        print('Multiple chats found containing the specified user IDs:')
+        pad_width = len(str(len(all_chat_ids) + 1))
+        for i, chat_id in enumerate(all_chat_ids):
             db.execute('''
                 SELECT handle.id
                 FROM handle
@@ -60,21 +65,24 @@ def get_chat_id(db, handle_ids):
             handle_ids = unpack_column(db.fetchall())
             padded = str(i + 1).rjust(pad_width)
             print('    Option {}:  {}'.format(padded, ', '.join(handle_ids)))
-        selection = input('Select a chat by entering its number: ')
+        indices_raw = input('Enter a comma-selected list of chats (e.g., "2,3,17"): ')
 
-        try:
-            selection = int(selection)
-        except ValueError:
-            exit('Error: "{}" is not a valid integer.'.format(selection))
-        if selection < 1 or selection > len(chat_ids):
-            exit('Error: "{}" is not an available option.'.format(selection))
-        return chat_ids[selection - 1]
+        chat_ids = []
+        for index_raw in indices_raw.split(','):
+            try:
+                index = int(index_raw)
+                if index < 1 or index > len(all_chat_ids):
+                    exit('Error: "{}" is not an available option.'.format(index))
+                chat_ids.append(all_chat_ids[index - 1])
+            except ValueError:
+                exit('Error: "{}" is not a valid integer.'.format(index_raw))
+        return chat_ids
 
     else:
-        return chat_ids[0]
+        return all_chat_ids
 
 
-def retrieve_messages(db, chat_id):
+def retrieve_messages(db, chat_ids):
     db.execute('''
         SELECT 
             message.text,
@@ -91,9 +99,9 @@ def retrieve_messages(db, chat_id):
         ON message.ROWID = message_attachment_join.message_id
         LEFT JOIN attachment
         ON attachment.ROWID = message_attachment_join.attachment_id
-        WHERE chat_id = ?
+        WHERE chat_id IN ({})
         ORDER BY message.date
-        ''', (chat_id,))
+        '''.format(wildcards(chat_ids)), chat_ids)
     return db.fetchall()
 
 
@@ -186,8 +194,8 @@ def main():
     prevent_overwrite()
     db = sqlite3.connect(DB_PATH).cursor()
     handle_ids = get_handle_ids(db)
-    chat_id = get_chat_id(db, handle_ids)
-    messages = retrieve_messages(db, chat_id)
+    chat_ids = get_chat_ids(db, handle_ids)
+    messages = retrieve_messages(db, chat_ids)
     year = get_year()
     month = None if year is None else get_month()
     utc_offset = get_utc_offset()
